@@ -1,11 +1,12 @@
 #
 # PySceneDetect Python Requirements
 #
-opencv-python
-numpy
-pandas
-scipy
 click
-tqdm
+numpy
+opencv-python
+pandas
 pytest
+ruptures
+scipy
+tqdm
 
