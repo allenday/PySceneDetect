@@ -39,6 +39,8 @@ modules (i.e. from scenedetect.detectors import ContentDetector).
 # PySceneDetect Detection Algorithm Imports
 from scenedetect.detectors.content_detector import ContentDetector
 from scenedetect.detectors.threshold_detector import ThresholdDetector
+from scenedetect.detectors.blur_detector import BlurDetector
+from scenedetect.detectors.rupture_detector import RuptureDetector
 
 # Algorithms being ported:
 #from scenedetect.detectors.motion_detector import MotionDetector

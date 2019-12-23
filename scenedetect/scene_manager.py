@@ -63,6 +63,7 @@ from scenedetect.platform import get_csv_writer
 from scenedetect.platform import get_cv2_imwrite_params
 from scenedetect.stats_manager import FrameMetricRegistered
 from scenedetect.scene_detector import SparseSceneDetector
+from scenedetect.detectors.rupture_detector import RuptureDetector
 
 from scenedetect.thirdparty.simpletable import SimpleTableCell, SimpleTableImage
 from scenedetect.thirdparty.simpletable import SimpleTableRow, SimpleTable, HTMLPage
@@ -221,7 +222,10 @@ def write_scene_list_html(output_html_filename, scene_list, cut_list=None, css=N
             '%d' % duration.get_frames(), duration.get_timecode(), '%.3f' % duration.get_seconds()])
 
         if image_filenames:
+            j = 0
             for image in image_filenames[i]:
+                j = j + 1
+                header_row.append("Image "+str(j))
                 row.add_cell(SimpleTableCell(SimpleTableImage(
                     image, width=image_width, height=image_height)))
 
@@ -508,12 +512,35 @@ class SceneManager(object):
         return all([detector.is_processing_required(frame_num) for detector in self._detector_list])
 
 
-    def _post_process(self, frame_num):
+    def _post_process(self, frame_num, frame_source):
         # type(int, numpy.ndarray) -> None
         """ Adds any remaining cuts to the cutting list after processing the last frame. """
-        for detector in self._detector_list:
-            self._cutting_list += detector.post_process(frame_num)
 
+        ex_post = None
+        cutting_lists = dict()
+        cutting_union = []
+
+        for detector in self._detector_list:
+            if isinstance(detector, RuptureDetector):
+                ex_post = detector
+                continue
+            #self._cutting_list += detector.post_process(frame_num, frame_source._cap_framerate)
+            #TODO this can't accomodate multiple detectors of same type
+            if type(detector).__name__ in cutting_lists.keys():
+                raise RuntimeError("multiple detectors of same class not supported: %s" % type(detector).__name__)
+            cutting_lists[type(detector).__name__] = detector.post_process(frame_num, frame_source._cap_framerate)
+            cutting_union += detector.post_process(frame_num, frame_source._cap_framerate)
+            #self._cutting_list += detector.post_process(frame_num, frame_source._cap_framerate)
+        if ex_post is not None:
+            cutting_uniq = dict()
+            for point in ex_post.post_process(frame_num, frame_source._cap_framerate):
+                cutting_uniq[point] = 1
+            if "ContentDetector" in cutting_lists.keys():
+                for point in cutting_lists["ContentDetector"]:
+                    cutting_uniq[point] = 1
+            self._cutting_list = sorted(cutting_uniq.keys())
+        else:
+            self._cutting_list = sorted(cutting_union.keys())
 
     def detect_scenes(self, frame_source, end_time=None, frame_skip=0,
                       show_progress=True):
@@ -616,7 +643,7 @@ class SceneManager(object):
                         if progress_bar:
                             progress_bar.update(1)
 
-            self._post_process(curr_frame)
+            self._post_process(curr_frame, frame_source)
 
             num_frames = curr_frame - start_frame
 

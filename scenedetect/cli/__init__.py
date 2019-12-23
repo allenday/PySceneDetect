@@ -504,6 +504,85 @@ def detect_threshold_command(ctx, threshold, min_scene_len, fade_bias, add_last_
         add_final_scene=add_last_scene, min_percent=min_percent, block_size=block_size))
 
 
+@click.command('detect-rupture')
+@click.option(
+    '--threshold', '-t', metavar='VAL',
+    type=click.FLOAT, default=0.32, show_default=True, help=
+    'Threshold value (integer) that the rupture Pelt penalty metric must be below to trigger a new scene.'
+    ' Refers to multiple metrics in stats file.')
+@click.option(
+    '--min-scene-len', '-m', metavar='TIMECODE',
+    type=click.STRING, show_default=True, default="0.6s", help=
+    'Minimum size/length of any scene. TIMECODE can be specified as exact'
+    ' number of frames, a time in seconds followed by s, or a timecode in the'
+    ' format HH:MM:SS or HH:MM:SS.nnn')
+@click.pass_context
+def detect_rupture_command(ctx, threshold, min_scene_len):
+    """  Perform changepoint detection algorithm on input video(s).
+
+    detect-rupture
+
+    detect-rupture --threshold 20
+    """
+
+    logging.debug('Detecting rupture changepoints, parameters:\n'
+                  '  threshold: %d, min-scene-len: %d',
+                  threshold, min_scene_len)
+
+    min_scene_len = parse_timecode(ctx.obj, min_scene_len)
+
+    # Convert min_percent and fade_bias from integer to floats (0.0-1.0 and -1.0-+1.0 respectively).
+    ctx.obj.add_detector(scenedetect.detectors.RuptureDetector(
+        threshold=threshold, min_scene_len=min_scene_len))
+
+@click.command('detect-blur')
+@click.option(
+    '--threshold', '-t', metavar='VAL',
+    type=click.FLOAT, default=0.32, show_default=True, help=
+    'Threshold value (integer) that the z_rgb frame metric must be below to trigger a new scene.'
+    ' Refers to frame metric z_rgb in stats file.')
+@click.option(
+    '--min-scene-len', '-m', metavar='TIMECODE',
+    type=click.STRING, show_default=True, default="0.6s", help=
+    'Minimum size/length of any scene. TIMECODE can be specified as exact'
+    ' number of frames, a time in seconds followed by s, or a timecode in the'
+    ' format HH:MM:SS or HH:MM:SS.nnn')
+@click.option(
+    '--fade-bias', '-f', metavar='PERCENT',
+    type=click.IntRange(-100, 100), default=0, show_default=True, help=
+    'Percent (%) from -100 to 100 of timecode skew for where cuts should be placed. -100'
+    ' indicates the start frame, +100 indicates the end frame, and 0 is the middle of both.')
+@click.option(
+    '--add-last-scene', '-l',
+    is_flag=True, flag_value=True, help=
+    'If set, if the video ends on a fade-out, an additional scene will be generated for the'
+    ' last fade out position.')
+@click.pass_context
+def detect_blur_command(ctx, threshold, min_scene_len, fade_bias, add_last_scene):
+    """  Perform blur detection algorithm on input video(s).
+
+    detect-blur
+
+    detect-blur --threshold 0.32
+    """
+
+    logging.debug('Detecting blur, parameters:\n'
+                  '  threshold: %d, min-scene-len: %d, fade-bias: %d,\n'
+                  '  add-last-scene: %s',
+                  threshold, min_scene_len, fade_bias,
+                  'yes' if add_last_scene else 'no')
+
+    # Handle case where add_last_scene is not set and is None.
+    add_last_scene = True if add_last_scene else False
+
+    min_scene_len = parse_timecode(ctx.obj, min_scene_len)
+
+    # Convert min_percent and fade_bias from integer to floats (0.0-1.0 and -1.0-+1.0 respectively).
+    fade_bias /= 100.0
+    ctx.obj.add_detector(scenedetect.detectors.BlurDetector(
+        threshold=threshold, min_scene_len=min_scene_len, fade_bias=fade_bias,
+        add_final_scene=add_last_scene))
+
 @click.command('export-html', add_help_option=False)
 @click.option(
     '--filename', '-f', metavar='NAME', default='$VIDEO_NAME-Scenes.html',
@@ -751,6 +830,9 @@ add_cli_command(scenedetect_cli, version_command)
 add_cli_command(scenedetect_cli, time_command)
 add_cli_command(scenedetect_cli, detect_content_command)
 add_cli_command(scenedetect_cli, detect_threshold_command)
+add_cli_command(scenedetect_cli, detect_blur_command)
+add_cli_command(scenedetect_cli, detect_rupture_command)
+
 add_cli_command(scenedetect_cli, list_scenes_command)
 
 add_cli_command(scenedetect_cli, save_images_command)

@@ -52,7 +52,7 @@ import time
 from scenedetect.scene_manager import SceneManager
 from scenedetect.frame_timecode import FrameTimecode
 from scenedetect.video_manager import VideoManager
-from scenedetect.detectors import ThresholdDetector, ContentDetector
+from scenedetect.detectors import ThresholdDetector, ContentDetector, BlurDetector
 from scenedetect.__main__ import main
 
 
