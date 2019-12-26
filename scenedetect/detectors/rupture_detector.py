@@ -42,6 +42,8 @@ import pandas
 import ruptures as rpt
 import scipy.stats
 from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import Imputer
+
 
 
 # PySceneDetect Library Imports
@@ -87,42 +89,53 @@ class RuptureDetector(SceneDetector):
         return []
 
     def post_process(self, frame_num, frame_rate):
+
+        imputer = Imputer()
+
         logging.info('****RuptureDetector post-process')
         logging.info("**** stats metrics: " + str(self.stats_manager.get_registered_metrics()))
         cut_times = []
 
         content_val = self.stats_manager.get_metric('content_val')
         xr = numpy.array(range(0,len(content_val))).reshape(-1,1)
-        content_val_lm = LinearRegression().fit(xr,numpy.cumsum(content_val))
-        content_val2 = numpy.cumsum(content_val) - content_val_lm.predict(xr)
+        content_vali = imputer.fit_transform(numpy.array(content_val).reshape(-1,1))
+
+        content_val_lm = LinearRegression().fit(xr,numpy.cumsum(content_vali))
+        content_val2 = numpy.cumsum(content_vali) - content_val_lm.predict(xr)
 
         delta_lum   = self.stats_manager.get_metric('delta_lum')
-        delta_lum_lm = LinearRegression().fit(xr,numpy.cumsum(delta_lum))
-        delta_lum2 = numpy.cumsum(delta_lum) - delta_lum_lm.predict(xr)
+        delta_lumi = imputer.fit_transform(numpy.array(delta_lum).reshape(-1,1))
+        delta_lum_lm = LinearRegression().fit(xr,numpy.cumsum(delta_lumi))
+        delta_lum2 = numpy.cumsum(delta_lumi) - delta_lum_lm.predict(xr)
 
         delta_hue   = self.stats_manager.get_metric('delta_hue')
-        delta_hue_lm = LinearRegression().fit(xr,numpy.cumsum(delta_hue))
-        delta_hue2 = numpy.cumsum(delta_hue) - delta_hue_lm.predict(xr)
+        delta_huei = imputer.fit_transform(numpy.array(delta_hue).reshape(-1,1))
+        delta_hue_lm = LinearRegression().fit(xr,numpy.cumsum(delta_huei))
+        delta_hue2 = numpy.cumsum(delta_huei) - delta_hue_lm.predict(xr)
 
         delta_sat   = self.stats_manager.get_metric('delta_sat')
-        delta_sat_lm = LinearRegression().fit(xr,numpy.cumsum(delta_sat))
-        delta_sat2 = numpy.cumsum(delta_sat) - delta_sat_lm.predict(xr)
+        delta_sati = imputer.fit_transform(numpy.array(delta_sat).reshape(-1,1))
+        delta_sat_lm = LinearRegression().fit(xr,numpy.cumsum(delta_sati))
+        delta_sat2 = numpy.cumsum(delta_sati) - delta_sat_lm.predict(xr)
 
         delta_rgb   = self.stats_manager.get_metric('delta_rgb')
-        delta_rgb_lm = LinearRegression().fit(xr,numpy.cumsum(delta_rgb))
-        delta_rgb2 = numpy.cumsum(delta_rgb) - delta_rgb_lm.predict(xr)
+        delta_rgbi = imputer.fit_transform(numpy.array(delta_rgb).reshape(-1,1))
+        delta_rgb_lm = LinearRegression().fit(xr,numpy.cumsum(delta_rgbi))
+        delta_rgb2 = numpy.cumsum(delta_rgbi) - delta_rgb_lm.predict(xr)
 
         z_rgb       = self.stats_manager.get_metric('z_rgb')
-        z_rgb_lm = LinearRegression().fit(xr,numpy.cumsum(z_rgb))
-        z_rgb2 = numpy.cumsum(z_rgb) - z_rgb_lm.predict(xr)
+        z_rgbi = imputer.fit_transform(numpy.array(z_rgb).reshape(-1,1))
+        z_rgb_lm = LinearRegression().fit(xr,numpy.cumsum(z_rgbi))
+        z_rgb2 = numpy.cumsum(z_rgbi) - z_rgb_lm.predict(xr)
 
         p25_rgb     = self.stats_manager.get_metric('p25_rgb')
         p75_rgb     = self.stats_manager.get_metric('p75_rgb')
         iqr_rgb = []
         for i in range(0,len(p25_rgb)):
             iqr_rgb.append(p75_rgb[i] - p25_rgb[i])
-        iqr_rgb_lm = LinearRegression().fit(xr,numpy.cumsum(iqr_rgb))
-        iqr_rgb2 = numpy.cumsum(iqr_rgb) - iqr_rgb_lm.predict(xr)
+        iqr_rgbi = imputer.fit_transform(numpy.array(iqr_rgb).reshape(-1,1))
+        iqr_rgb_lm = LinearRegression().fit(xr,numpy.cumsum(iqr_rgbi))
+        iqr_rgb2 = numpy.cumsum(iqr_rgbi) - iqr_rgb_lm.predict(xr)
 
         #chi_s       = self.stats_manager.get_metric('hist_s')
         #ts          = pandas.Series(self.stats_manager.get_metric('z_rgb'))
